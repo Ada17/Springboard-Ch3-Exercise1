@@ -1,0 +1,238 @@
+
+---
+title: "SEPTA train DATA"
+author: "Ada"
+date: "May 25, 2017"
+output: html_document
+---
+
+
+##What is the problem  I want to solve
+
+I take the train to work during the weekdays. It's usually a smooth ride and saves a lot of time spent on the highways and in local traffic. The traffic in South Florida during early morning and evening hours is probably one of the worst in the United States. So some of us are grateful for the train option because we at least don't have to deal with the crazy traffic which can actually unfortunately set the tone for your day depending on how smooth the drive was or how much delay was encountered depending on accidents, road blocks and other unforeseen incidents that can occur.
+
+As hinted above, train ride can be very relaxing and works out great with your schedule if it arrives on time. However, sometimes, the trains are late. They can delay for a very few minutes up to hours. You just arrive at the station and hope it's on time. The useful Tri Rail app, helps with the information but not all the time. 
+
+I want to solve the problem of the train delays by predicting when the train will be delayed based on data from previous rides. The Septa train data from Kaggle will be used for this prediction.
+
+#This section shows the summary of the SEPTA train data and the first few records using the head().
+
+```{r, echo=FALSE}
+
+library(tidyr)
+library(lubridate)
+
+train_data <- read.csv("C:/Users/aalutu/Desktop/work/pers/data science/on-time-performance/trainsample_otp.csv")
+train_data$datets <- as.POSIXct(train_data$timeStamp, format = "%m/%d/%Y %H:%M")
+head(train_data$datets)
+train_data$wkday <-weekdays(as.Date(train_data$date, format = "%m/%d/%Y"))
+head(train_data$wkday)
+train_data$month <-month(as.Date(train_data$date, "%m/%d/%Y"))
+head(train_data$month)
+#traindata3col <- separate(train_data, timeStamp,c("month", "day", "year"), sep = "/")
+##head(traindata3col)
+
+train_data <- separate(train_data, datets, c("date3","time"), sep = " ")
+head(train_data)
+train_data <- separate(train_data, time, c("hour","minute"), sep = ":")
+head(train_data)
+
+train_data <- separate(train_data, date3, c("date3yr","d3month", "monthday"), sep = "-")
+head(train_data)
+#traindata5col <- separate(traindata4col, time, c("two4hour","minute"), sep = ":")
+#head(traindata5col)
+#summary(traindata5col)
+train_data$monthday
+
+#remove the date column
+train_data$date <- NULL
+train_data$date3yr <- NULL
+train_data$d3month <- NULL
+train_data$timeStamp <- NULL
+
+head(train_data)
+train_data$status <- gsub(pattern="min", replacement = "", x = train_data$status, ignore.case = TRUE)
+head(train_data$status)
+
+train_data$status <- gsub(pattern="On Time", replacement = "0", x = train_data$status, ignore.case = TRUE)
+head(train_data)
+summary(train_data)
+
+```
+
+##The data revolving the SEPTA Train experience
+###The original train data actually came with 6 variables:
+  + Train id
+  + Next_station
+  + Direction
+  + Origin
+  + Status
+  + Timestamp
+
+###In other to be able to create a more meaningful predictions, and maximize the data we have, we transformed some of the variables by breaking them down to create more variables which ended up creating 5 more variables:
+  + monthday
+  + hour
+  + minute
+  + wkday
+  + month
+  
+###Limitations of the dataset
+####The dataset factors in measurable data but natural contributions were not accounted for. Other factors like weather, accidents can contribute to the delays of the train. Keep in mind that these are factors that cannot be predicted because they are determined by mother nature.
+
+###Wrangling involved and Preliminary steps
+####The data was shuffled first to eliminate any possibilities that could tilt the results. The statistics provided by the summary were removed and then different charts were generated to get an idea of the trend and the meaningfulness of the data.
+
+####Approaches Planned
+###First with the help of the Data campt R tutorials provided through the springboard website, I learned how to generate the charts in R. My mentor reviewed and made suggestions on the next step that need to be followed to create a model that can be used on any dataset and will help predict train delay for any given day.
+
+###Dr Shmuel Naaman suggested trying the linear models and then more models if needed. The inital results will determine which model to use. We have been on track so far only needing to change the type of model used based on the results.
+
+
+```{r}
+#model.matrix(~ factor(wkday), data=train_data,
+            # contrasts.arg =list(wkday = contrasts(factor(train_data$wkday), #contrasts = F)) )
+
+#head(train_data)
+```
+
+#Add the weekday variables as column to train_data dataframe.
+```{r}
+train_data <- cbind(train_data, as.data.frame(model.matrix(~ wkday + monthday, data = train_data, contrasts.arg = list(wkday = contr.treatment(n = 7, contrasts = FALSE), monthday = contr.treatment(n = 31, contrasts = FALSE)))))
+
+
+head(train_data)
+
+#train_data <- cbind(train_data, as.data.frame(model.matrix( ~ monthday, data = train_data)), #as.data.frame(model.matrix( ~ wkday, data = train_data)))
+#head(train_data)
+#summary(train_data)
+```
+
+#Linear model statistical summary for Status based on x = origin:
+
+```{r}
+#train_data$month <- as.numeric(train_data$month)
+#train_data$monthday <- as.numeric(as.character(train_data$monthday))
+#train_data$minute <- as.numeric(as.character(train_data$minute))
+#train_data$hour <- as.numeric(as.character(train_data$hour))
+#traindata5col$two4hour <- as.numeric(as.character(traindata5col$two4hour))
+#train_data$wkdaySaturday <- as.numeric(train_data$wkdaySaturday)
+#train_data$status <- as.numeric(train_data$status)
+#train_data$train_id <- as.numeric(train_data$train_id)
+#train_data$wkdayMonday <- as.numeric(train_data$wkdayMonday)
+#train_data$wkdaySunday <- as.numeric(train_data$wkdaySunday)
+#train_data$wkdayThursday <- as.numeric(train_data$wkdayThursday)
+#train_data$wkdayTuesday <- as.numeric(train_data$wkdayTuesday)
+#train_data$wkdayWednesday <- as.numeric(train_data$wkdayWednesday)
+#traindata5col$direction <- as.numeric(as.character(traindata5$direction))
+train_data$monthday <- as.numeric(train_data$monthday)
+#head(traindata5col)
+#summary(traindata5col)
+
+
+##linear model of each graph
+library(broom)
+
+summary(lm(log(as.numeric( train_data$status)+1) ~ origin, data = train_data))
+
+#summary(lm(log(as.numeric( train_data$status)+1) ~ monthday, data = train_data))
+
+#glance(summary(lm(status ~ origin, data = traindata5col)))
+#summary(lm(as.numeric(factor(status)) ~ factor(origin), data = traindata5col))
+#summary(lm(status ~ origin, data = traindata5col))
+#plot(stattrainidlm)
+```
+
+Note that the `echo = FALSE`,r, echo=FALSE, parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+#Origin + weekday
+
+```{r}
+
+summary(lm(log(as.numeric( train_data$status)+1) ~ origin + wkday, data = train_data))
+
+```
+```{r}
+
+```
+#Origin + hour
+
+```{r}
+
+glance(summary(lm(log(as.numeric( train_data$status)+1) ~ origin + hour, data = train_data)))
+
+glance(summary(lm(log(as.numeric( train_data$status)+1) ~ origin + hour + wkday + monthday, data = train_data)))
+
+```
+
+
+
+#Origin + hour + monthday + wkday
+```{r}
+
+glance(summary(lm(log(as.numeric( train_data$status)+1) ~ origin + hour +monthday + train_data$wkdaySunday, data = train_data)))
+```
+
+
+#origin, hour, monthday, month + wkdays,
+
+```{r}
+
+glance(summary(lm(log(as.numeric( train_data$status)+1) ~ origin+ hour + month + monthday + wkdaySunday + wkdayMonday, data = train_data)))
+
+```
+
+#LM summary of y = status and x = all variables:
+
+```{r}
+
+summary(lm(log(as.numeric( train_data$status)+1) ~ origin+ hour + month + monthday + wkdaySunday + wkdayMonday + wkdayTuesday, data = train_data))
+```
+
+
+```{r}
+summary(lm(log(as.numeric( train_data$status)+1) ~ origin+ hour + month + monthday + wkdaySunday + wkdayMonday + wkdayTuesday + wkdayWednesday, data = train_data))
+
+```
+
+
+```{r}
+summary(lm(log(as.numeric( train_data$status)+1) ~ origin+ hour + month + monthday + wkdaySunday + wkdayMonday + wkdayTuesday + wkdayWednesday + wkdayThursday, data = train_data))
+
+```
+
+#no Friday rides??
+```{r}
+summary(lm(log(as.numeric( train_data$status)+1) ~ origin+ hour + month + monthday + wkdaySunday + wkdayMonday + wkdayTuesday + wkdayWednesday + wkdayThursday + wkdaySaturday, data = train_data))
+
+```
+
+
+```{r}
+
+glance(summary(lm(log(as.numeric( train_data$status)+1) ~ origin+ hour + month + monthday + wkdaySunday + wkdayMonday + wkdayTuesday + wkdayWednesday + wkdayThursday + wkdaySaturday + wkdaySunday, data = train_data)))
+```
+
+```{r}
+
+glance(summary(lm(log(as.numeric( train_data$status)+1) ~ origin+ hour + minute + month + wkday1 + wkday2 + wkday3 + wkday4 + wkday5 + wkday6 + wkday7 + monthday1 + monthday2 + monthday3 + monthday4 + monthday5 + monthday6 + monthday7 + monthday8 + monthday9 + monthday10 + monthday11 + monthday12 + monthday13 + monthday14+ monthday15 + monthday16 + monthday17 + monthday18 + monthday19 + monthday20 + monthday21+ monthday22 + monthday23 + monthday24 + monthday25 + monthday26 + monthday27 + monthday28+ monthday29 + monthday30 + monthday31 + train_data$next_station + train_data$direction, data = train_data)))
+
+```
+
+
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+summary(cars)
+```
+
+You can also embed plots, for example:
+
+```{r, echo=FALSE}
+plot(cars)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.

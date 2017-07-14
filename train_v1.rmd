@@ -1,0 +1,197 @@
+---
+title: "SEPTA train DATA"
+author: "Ada"
+date: "May 25, 2017"
+output: html_document
+---
+
+
+
+#This section shows the summary of the SEPTA train data and the first few records using the head().
+
+```{r, echo=FALSE}
+
+library(tidyr)
+library(lubridate)
+
+train_data <- read.csv("C:/Users/aalutu/Desktop/work/pers/data science/on-time-performance/trainsample_otp.csv")
+train_data$datets <- as.POSIXct(train_data$timeStamp, format = "%m/%d/%Y %H:%M")
+head(train_data$datets)
+train_data$wkday <-weekdays(as.Date(train_data$date, format = "%m/%d/%Y"))
+head(train_data$wkday)
+train_data$month <-month(as.Date(train_data$date, "%m/%d/%Y"))
+head(train_data$month)
+#traindata3col <- separate(train_data, timeStamp,c("month", "day", "year"), sep = "/")
+##head(traindata3col)
+
+train_data <- separate(train_data, datets, c("date3","time"), sep = " ")
+head(train_data)
+train_data <- separate(train_data, time, c("hour","minute"), sep = ":")
+head(train_data)
+
+train_data <- separate(train_data, date3, c("date3yr","d3month", "monthday"), sep = "-")
+head(train_data)
+#traindata5col <- separate(traindata4col, time, c("two4hour","minute"), sep = ":")
+#head(traindata5col)
+#summary(traindata5col)
+train_data$monthday
+
+#remove the date column
+train_data$date <- NULL
+train_data$date3yr <- NULL
+train_data$d3month <- NULL
+train_data$timeStamp <- NULL
+
+head(train_data)
+#remove "minute/min" from status column, replace ontime with 0.
+#then convert status column to integer.
+#traindata5col$status <- strsplit(traindata5col$status, split = " min")
+train_data$status <- gsub(pattern="min", replacement = "", x = train_data$status, ignore.case = TRUE)
+head(train_data$status)
+
+train_data$status <- gsub(pattern="On Time", replacement = "0", x = train_data$status, ignore.case = TRUE)
+ #for(i in 1:length(traindata5col$status)){
+   
+  # if(traindata5col$status[i] == "On Time"){
+   #  traindata5col$status[i] = 0
+   #} 
+ #}
+
+head(train_data)
+summary(train_data)
+
+```
+
+
+
+```{r}
+#model.matrix(~ factor(wkday), data=train_data,
+            # contrasts.arg =list(wkday = contrasts(factor(train_data$wkday), #contrasts = F)) )
+
+#head(train_data)
+```
+
+#Add the weekday variables as column to train_data dataframe.
+```{r}
+train_data <- cbind(train_data, as.data.frame(model.matrix(~ wkday + monthday, data = train_data, contrasts.arg = list(wkday = contr.treatment(n = 7, contrasts = FALSE), monthday = contr.treatment(n = 31, contrasts = FALSE)))))
+
+
+head(train_data)
+
+#train_data <- cbind(train_data, as.data.frame(model.matrix( ~ monthday, data = train_data)), #as.data.frame(model.matrix( ~ wkday, data = train_data)))
+#head(train_data)
+#summary(train_data)
+```
+
+#Linear model statistical summary for Status based on x = origin:
+
+```{r}
+#train_data$month <- as.numeric(train_data$month)
+#train_data$monthday <- as.numeric(as.character(train_data$monthday))
+#train_data$minute <- as.numeric(as.character(train_data$minute))
+#train_data$hour <- as.numeric(as.character(train_data$hour))
+#traindata5col$two4hour <- as.numeric(as.character(traindata5col$two4hour))
+#train_data$wkdaySaturday <- as.numeric(train_data$wkdaySaturday)
+#train_data$status <- as.numeric(train_data$status)
+#train_data$train_id <- as.numeric(train_data$train_id)
+#train_data$wkdayMonday <- as.numeric(train_data$wkdayMonday)
+#train_data$wkdaySunday <- as.numeric(train_data$wkdaySunday)
+#train_data$wkdayThursday <- as.numeric(train_data$wkdayThursday)
+#train_data$wkdayTuesday <- as.numeric(train_data$wkdayTuesday)
+#train_data$wkdayWednesday <- as.numeric(train_data$wkdayWednesday)
+#traindata5col$direction <- as.numeric(as.character(traindata5$direction))
+train_data$monthday <- as.numeric(train_data$monthday)
+#head(traindata5col)
+#summary(traindata5col)
+
+
+##linear model of each graph
+library(broom)
+
+summary(lm(log(as.numeric( train_data$status)+1) ~ origin, data = train_data))
+
+#summary(lm(log(as.numeric( train_data$status)+1) ~ monthday, data = train_data))
+
+#glance(summary(lm(status ~ origin, data = traindata5col)))
+#summary(lm(as.numeric(factor(status)) ~ factor(origin), data = traindata5col))
+#summary(lm(status ~ origin, data = traindata5col))
+#plot(stattrainidlm)
+```
+
+Note that the `echo = FALSE`,r, echo=FALSE, parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+#Origin + weekday
+
+```{r}
+
+summary(lm(log(as.numeric( train_data$status)+1) ~ origin + wkday, data = train_data))
+
+```
+```{r}
+
+```
+#Origin + hour
+
+```{r}
+
+glance(summary(lm(log(as.numeric( train_data$status)+1) ~ origin + hour, data = train_data)))
+
+glance(summary(lm(log(as.numeric( train_data$status)+1) ~ origin + hour + wkday + monthday, data = train_data)))
+
+```
+
+
+
+#Origin + hour + monthday + wkday
+```{r}
+
+glance(summary(lm(log(as.numeric( train_data$status)+1) ~ origin + hour +monthday + train_data$wkdaySunday, data = train_data)))
+```
+
+
+#origin, hour, monthday, month + wkdays,
+
+```{r}
+
+glance(summary(lm(log(as.numeric( train_data$status)+1) ~ origin+ hour + month + monthday + wkdaySunday + wkdayMonday, data = train_data)))
+
+```
+
+#LM summary of y = status and x = all variables:
+
+```{r}
+
+summary(lm(log(as.numeric( train_data$status)+1) ~ origin+ hour + month + monthday + wkdaySunday + wkdayMonday + wkdayTuesday, data = train_data))
+```
+
+
+```{r}
+summary(lm(log(as.numeric( train_data$status)+1) ~ origin+ hour + month + monthday + wkdaySunday + wkdayMonday + wkdayTuesday + wkdayWednesday, data = train_data))
+
+```
+
+
+```{r}
+summary(lm(log(as.numeric( train_data$status)+1) ~ origin+ hour + month + monthday + wkdaySunday + wkdayMonday + wkdayTuesday + wkdayWednesday + wkdayThursday, data = train_data))
+
+```
+
+#no Friday rides??
+```{r}
+summary(lm(log(as.numeric( train_data$status)+1) ~ origin+ hour + month + monthday + wkdaySunday + wkdayMonday + wkdayTuesday + wkdayWednesday + wkdayThursday + wkdaySaturday, data = train_data))
+
+```
+
+
+```{r}
+
+glance(summary(lm(log(as.numeric( train_data$status)+1) ~ origin+ hour + month + monthday + wkdaySunday + wkdayMonday + wkdayTuesday + wkdayWednesday + wkdayThursday + wkdaySaturday + wkdaySunday, data = train_data)))
+```
+
+```{r}
+
+glance(summary(lm(log(as.numeric( train_data$status)+1) ~ origin+ hour + minute + month + wkday1 + wkday2 + wkday3 + wkday4 + wkday5 + wkday6 + wkday7 + monthday1 + monthday2 + monthday3 + monthday4 + monthday5 + monthday6 + monthday7 + monthday8 + monthday9 + monthday10 + monthday11 + monthday12 + monthday13 + monthday14+ monthday15 + monthday16 + monthday17 + monthday18 + monthday19 + monthday20 + monthday21+ monthday22 + monthday23 + monthday24 + monthday25 + monthday26 + monthday27 + monthday28+ monthday29 + monthday30 + monthday31 + train_data$next_station + train_data$direction, data = train_data)))
+
+```
+
